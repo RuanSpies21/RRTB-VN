@@ -2,7 +2,7 @@
 
 ## Overview
 
-This pipeline implements a deterministic compartmental model of drug-susceptible (DS) and rifampicin-resistant (RR) tuberculosis transmission in Vietnam. The model is calibrated to WHO incidence estimates and used to project the impact of isoniazid-resistance (INH-R) diagnosis and treatment interventions on RR-TB burden.
+This pipeline implements a deterministic compartmental model of drug-susceptible (DS) and rifampicin-resistant (RR) TB transmission in Viet Nam. The model is calibrated to WHO incidence estimates and used to project the impact of isoniazid-resistance (INH-R) diagnosis and treatment interventions on RR-TB burden.
 
 The central hypothesis is that a substantial fraction of RR-TB in Vietnam arises through acquired resistance during treatment of DS-TB patients who have undetected INH-R, and that diagnosing and appropriately treating INH-R can reduce the rate of resistance acquisition, thereby reducing RR-TB incidence.
 
@@ -113,16 +113,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 
 ## Script Descriptions
 
-### `run_pipeline.R`
-
-**Purpose:** Master script that runs the entire pipeline in sequence.
-
-**What it does:** Installs any missing R packages, then sources scripts 01 through 06 in order. Reports total runtime on completion.
-
-**Usage:** `Rscript run_pipeline.R` from the project root, or `source("run_pipeline.R")` in an R session.
-
----
-
 ### `01_Data.R` — Data Preparation
 
 **Purpose:** Load WHO incidence data for Vietnam and construct calibration targets.
@@ -174,10 +164,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `outputs/ems/w001_ems.Rdata` — Trained emulators
 - `outputs/pts/w001_pts.Rdata` — Candidate points for next wave
 
-**Dependencies:** `hmer`, `lhs`, `deSolve`
-
-**Runtime:** ~10–30 minutes depending on hardware (580 ODE evaluations).
-
 ---
 
 ### `02b_Fit_Waves.R` — Iterative Calibration (Parallelised)
@@ -202,8 +188,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `outputs/waves/w{NNN}_wave.Rdata` — Per-wave results
 - `outputs/ems/w{NNN}_ems.Rdata` — Per-wave emulators
 
-**Runtime:** Hours to days depending on model complexity and convergence. The number of waves required is not fixed and depends on how quickly the emulators can narrow the parameter space.
-
 ---
 
 ### `03_FitPlots.R` — Calibration Diagnostics
@@ -227,8 +211,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `outputs/results.Rdata` — Quantile summary of calibration outputs (used as a cross-check)
 - `plots/01_calibration_fit.png` — Main calibration figure
 - `plots/03_parameters.png` — Parameter posterior distributions
-
-**Key check for reviewer:** The model envelopes should fully contain the calibration target error bars. If targets fall outside the 95% envelope, the calibration is inadequate.
 
 ---
 
@@ -298,49 +280,3 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `plots/panel_p1.png` through `plots/panel_p4.png` — Individual panels
 
 ---
-
-## Running the Pipeline
-
-```bash
-# Full pipeline
-cd /path/to/project
-Rscript run_pipeline.R
-
-# Or individual scripts (in order)
-Rscript 01_Data.R
-Rscript 02_Fit.R
-Rscript 02b_Fit_Waves.R   # Long-running
-Rscript 03_FitPlots.R
-Rscript 04_Scenarios.R
-Rscript 05_Results.R
-Rscript 06_Plots.R
-```
-
-**Prerequisites:** R ≥ 4.0 with packages listed in `run_pipeline.R`. The `hmer` package is critical and available on CRAN. All other packages are standard.
-
-**Runtime:** Steps 02/02b dominate (~hours to days for calibration). Steps 04–06 take ~30–60 minutes (5,000 ODE evaluations).
-
-## Directory Structure
-
-```
-project/
-├── data/
-│   ├── who/vnm_data.xlsx          # WHO input data
-│   └── fit/                        # Calibration targets
-├── outputs/
-│   ├── pts/fitpts.Rdata           # ★ Plausible parameter sets
-│   ├── waves/                      # Per-wave HMER results
-│   ├── ems/                        # Trained emulators
-│   ├── results/                    # Scenario outputs
-│   └── outs/                       # Summary tables
-└── plots/                          # Figures
-```
-
-## Key Assumptions and Limitations
-
-1. **Deterministic model** — does not capture stochastic extinction of RR-TB at low prevalence.
-2. **Homogeneous mixing** — no age, spatial, or risk-group structure.
-3. **Constant population** — uses fixed N = 100k with constant background mortality (μ = 0.013/yr).
-4. **Resistance is permanent** — no reversion from RR to DS.
-5. **Intervention targets acquisition only** — does not model improved treatment outcomes for detected INH-R cases or any effect on DS-TB outcomes beyond preventing resistance acquisition.
-6. **PAF is externally estimated** — the 95.1% PAF for INH-R comes from our separate case-control analysis and is treated as fixed input (with uncertainty).
