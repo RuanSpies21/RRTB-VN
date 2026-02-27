@@ -12,13 +12,13 @@ The model tracks two strains (DS and RR) across 13 compartments (1 shared Suscep
 
 | Compartment | Description |
 |---|---|
-| **SUS** | Susceptible (shared) |
-| **INF** | Recently infected (latent, fast progression) |
-| **MIN** | Non-infectious (paucibacillary / minimal disease) |
-| **SUB** | Subclinical / asymptomatic (infectious at reduced rate κ) |
-| **CLN** | Symptomatic (clinical, fully infectious) |
-| **TXT** | On treatment |
-| **TRE** | Treatment completed |
+| **Susceptible/SUS** | No bacili, no pathology, no symptoms, not infectious |
+| **Infection/INF** | Bacili present, no pathology, no symptoms, not infectious |
+| **Non-infectious/MIN** | Bacili present, pathology present, no symptoms, not infectious |
+| **Asymptomatic/SUB** | Bacili present, pathology present, no symptoms, infectious|
+| **Symptomatic/CLN** | Bacili present, pathology present, symptoms, infectious |
+| **Treatment/TXT** | On treatment |
+| **Treated/TRE** | Treatment completed |
 
 Each compartment except SUS is duplicated for DS and RR strains (e.g. `SUB_DS`, `SUB_RR`).
 
