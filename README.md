@@ -2,7 +2,7 @@
 
 ## Overview
 
-This pipeline implements a deterministic compartmental model of drug-susceptible (DS) and rifampicin-resistant (RR) tuberculosis transmission in Vietnam. The model is calibrated to WHO incidence estimates and used to project the impact of isoniazid-resistance (INH-R) diagnosis and treatment interventions on RR-TB burden.
+This pipeline implements a deterministic compartmental model of drug-susceptible (DS) and rifampicin-resistant (RR) TB transmission in Viet Nam. The model is calibrated to WHO incidence estimates and used to project the impact of isoniazid-resistance (INH-R) diagnosis and treatment interventions on RR-TB burden.
 
 The central hypothesis is that a substantial fraction of RR-TB in Vietnam arises through acquired resistance during treatment of DS-TB patients who have undetected INH-R, and that diagnosing and appropriately treating INH-R can reduce the rate of resistance acquisition, thereby reducing RR-TB incidence.
 
@@ -12,30 +12,32 @@ The model tracks two strains (DS and RR) across 13 compartments (1 shared Suscep
 
 | Compartment | Description |
 |---|---|
-| **SUS** | Susceptible (shared) |
-| **INF** | Recently infected (latent, fast progression) |
-| **MIN** | Non-infectious (paucibacillary / minimal disease) |
-| **SUB** | Subclinical / asymptomatic (infectious at reduced rate κ) |
-| **CLN** | Symptomatic (clinical, fully infectious) |
-| **TXT** | On treatment |
-| **TRE** | Treatment completed |
+| **Susceptible/SUS** | No bacili, no pathology, no symptoms, not infectious |
+| **Infection/INF** | Bacili present, no pathology, no symptoms, not infectious |
+| **Non-infectious/MIN** | Bacili present, pathology present, no symptoms, not infectious |
+| **Asymptomatic/SUB** | Bacili present, pathology present, no symptoms, infectious|
+| **Symptomatic/CLN** | Bacili present, pathology present, symptoms, infectious |
+| **Treatment/TXT** | On treatment |
+| **Treated/TRE** | Treatment completed |
 
 Each compartment except SUS is duplicated for DS and RR strains (e.g. `SUB_DS`, `SUB_RR`).
+
+![Model structure](new_model_structure.png)
 
 ### Key Dynamics
 
 **Transmission.** Force of infection is strain-specific. RR-TB transmissibility is scaled by a fitness parameter (`fitness_rr`, range 0.3–1.0). Subclinical individuals transmit at a reduced rate (κ relative to symptomatic).
 
-**Natural history.** After infection, individuals progress through a fast-progression pathway (INF) with three possible outcomes: clearance back to Susceptible (→ SUS at rate ω_c), non-infectious disease (→ MIN at rate ω_m), or subclinical disease (→ SUB at rate ω_s). Non-infectious individuals can recover back to Susceptible (→ SUS at rate μ_r) or progress to subclinical (→ SUB at rate μ_s). Subclinical cases can regress to non-infectious or progress to symptomatic. Symptomatic cases can regress to subclinical (γ), die from TB, or be diagnosed and started on treatment.
+**Natural history.** After infection, individuals progress with three possible outcomes: clearance back to Susceptible (→ SUS at rate ω_c), non-infectious disease (→ MIN at rate ω_m), or asymptomatic disease (→ SUB at rate ω_s). Non-infectious individuals can recover back to Susceptible (→ SUS at rate μ_r) or progress to asymptomatic disease (→ SUB at rate μ_s). Asymptomatic disease cases can regress to non-infectious or progress to symptomatic disease. Symptomatic disease cases can regress to subclinical (γ), die from TB, or be diagnosed and started on treatment.
 
 **Treatment and resistance acquisition.** DS-TB treatment has two pathways to generate RR-TB:
 
-1. **Treatment failure** — A fraction `acq_fail` of DS-TB treatment failures acquire rifampicin resistance, entering CLN_RR (Symptomatic-R) instead of returning to CLN_DS.
-2. **Post-treatment relapse** — A fraction `acq_relapse` of DS-TB relapses acquire resistance, entering SUB_RR (Asymptomatic-R). Relapses without resistance return to SUB_DS.
+1. **Treatment failure** — A fraction `acq_fail` of DS-TB treatment failures acquire rifampicin resistance, entering CLN_RR (Symptomatic RR-TB) instead of returning to CLN_DS (Symptomatic DS-TB).
+2. **Post-treatment relapse** — A fraction `acq_relapse` of DS-TB relapses acquire resistance, entering SUB_RR (Asymptomatic RR-TB). Relapses without resistance return to SUB_DS (Asymptomatic DS-TB).
 
 These are the flows targeted by the INH-R intervention.
 
-**Treated → Susceptible.** After treatment completion, individuals return to the Susceptible pool at rate τ (range 0.5–1.5/yr). While in the Treated compartment they can also relapse (at rate `relapse_ds` or `relapse_rr`), returning to the Asymptomatic stage.
+**Treated → Susceptible.** After treatment completion, individuals return to the Susceptible pool at rate τ. While in the Treated compartment they can also relapse (at rate `relapse_ds` or `relapse_rr`), returning to the Asymptomatic stage.
 
 ### Time-Varying Parameters
 
@@ -59,7 +61,7 @@ Additionally, `delta_rr` (RR-TB treatment completion rate) transitions from 0.67
 
 ## Calibration
 
-The model is calibrated using History Matching with Emulation (HMER), an iterative Bayesian approach that identifies parameter sets consistent with observed data without requiring a likelihood function.
+The model is calibrated using History Matching with Emulation (HMER), an iterative approach that user emulators to efficiently identify parameter sets consistent with observed data, without requiring a likelihood function.
 
 ### Calibration Targets
 
@@ -113,16 +115,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 
 ## Script Descriptions
 
-### `run_pipeline.R`
-
-**Purpose:** Master script that runs the entire pipeline in sequence.
-
-**What it does:** Installs any missing R packages, then sources scripts 01 through 06 in order. Reports total runtime on completion.
-
-**Usage:** `Rscript run_pipeline.R` from the project root, or `source("run_pipeline.R")` in an R session.
-
----
-
 ### `01_Data.R` — Data Preparation
 
 **Purpose:** Load WHO incidence data for Vietnam and construct calibration targets.
@@ -174,10 +166,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `outputs/ems/w001_ems.Rdata` — Trained emulators
 - `outputs/pts/w001_pts.Rdata` — Candidate points for next wave
 
-**Dependencies:** `hmer`, `lhs`, `deSolve`
-
-**Runtime:** ~10–30 minutes depending on hardware (580 ODE evaluations).
-
 ---
 
 ### `02b_Fit_Waves.R` — Iterative Calibration (Parallelised)
@@ -202,8 +190,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `outputs/waves/w{NNN}_wave.Rdata` — Per-wave results
 - `outputs/ems/w{NNN}_ems.Rdata` — Per-wave emulators
 
-**Runtime:** Hours to days depending on model complexity and convergence. The number of waves required is not fixed and depends on how quickly the emulators can narrow the parameter space.
-
 ---
 
 ### `03_FitPlots.R` — Calibration Diagnostics
@@ -227,8 +213,6 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `outputs/results.Rdata` — Quantile summary of calibration outputs (used as a cross-check)
 - `plots/01_calibration_fit.png` — Main calibration figure
 - `plots/03_parameters.png` — Parameter posterior distributions
-
-**Key check for reviewer:** The model envelopes should fully contain the calibration target error bars. If targets fall outside the 95% envelope, the calibration is inadequate.
 
 ---
 
@@ -298,49 +282,3 @@ Interventions begin in 2025 and the model projects forward to 2035.
 - `plots/panel_p1.png` through `plots/panel_p4.png` — Individual panels
 
 ---
-
-## Running the Pipeline
-
-```bash
-# Full pipeline
-cd /path/to/project
-Rscript run_pipeline.R
-
-# Or individual scripts (in order)
-Rscript 01_Data.R
-Rscript 02_Fit.R
-Rscript 02b_Fit_Waves.R   # Long-running
-Rscript 03_FitPlots.R
-Rscript 04_Scenarios.R
-Rscript 05_Results.R
-Rscript 06_Plots.R
-```
-
-**Prerequisites:** R ≥ 4.0 with packages listed in `run_pipeline.R`. The `hmer` package is critical and available on CRAN. All other packages are standard.
-
-**Runtime:** Steps 02/02b dominate (~hours to days for calibration). Steps 04–06 take ~30–60 minutes (5,000 ODE evaluations).
-
-## Directory Structure
-
-```
-project/
-├── data/
-│   ├── who/vnm_data.xlsx          # WHO input data
-│   └── fit/                        # Calibration targets
-├── outputs/
-│   ├── pts/fitpts.Rdata           # ★ Plausible parameter sets
-│   ├── waves/                      # Per-wave HMER results
-│   ├── ems/                        # Trained emulators
-│   ├── results/                    # Scenario outputs
-│   └── outs/                       # Summary tables
-└── plots/                          # Figures
-```
-
-## Key Assumptions and Limitations
-
-1. **Deterministic model** — does not capture stochastic extinction of RR-TB at low prevalence.
-2. **Homogeneous mixing** — no age, spatial, or risk-group structure.
-3. **Constant population** — uses fixed N = 100k with constant background mortality (μ = 0.013/yr).
-4. **Resistance is permanent** — no reversion from RR to DS.
-5. **Intervention targets acquisition only** — does not model improved treatment outcomes for detected INH-R cases or any effect on DS-TB outcomes beyond preventing resistance acquisition.
-6. **PAF is externally estimated** — the 95.1% PAF for INH-R comes from our separate case-control analysis and is treated as fixed input (with uncertainty).
