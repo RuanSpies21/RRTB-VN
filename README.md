@@ -26,16 +26,16 @@ Each compartment except SUS is duplicated for DS and RR strains (e.g. `SUB_DS`, 
 
 **Transmission.** Force of infection is strain-specific. RR-TB transmissibility is scaled by a fitness parameter (`fitness_rr`, range 0.3–1.0). Subclinical individuals transmit at a reduced rate (κ relative to symptomatic).
 
-**Natural history.** After infection, individuals progress through a fast-progression pathway (INF) with three possible outcomes: clearance back to Susceptible (→ SUS at rate ω_c), non-infectious disease (→ MIN at rate ω_m), or subclinical disease (→ SUB at rate ω_s). Non-infectious individuals can recover back to Susceptible (→ SUS at rate μ_r) or progress to subclinical (→ SUB at rate μ_s). Subclinical cases can regress to non-infectious or progress to symptomatic. Symptomatic cases can regress to subclinical (γ), die from TB, or be diagnosed and started on treatment.
+**Natural history.** After infection, individuals progress with three possible outcomes: clearance back to Susceptible (→ SUS at rate ω_c), non-infectious disease (→ MIN at rate ω_m), or asymptomatic disease (→ SUB at rate ω_s). Non-infectious individuals can recover back to Susceptible (→ SUS at rate μ_r) or progress to asymptomatic disease (→ SUB at rate μ_s). Asymptomatic disease cases can regress to non-infectious or progress to symptomatic disease. Symptomatic disease cases can regress to subclinical (γ), die from TB, or be diagnosed and started on treatment.
 
 **Treatment and resistance acquisition.** DS-TB treatment has two pathways to generate RR-TB:
 
-1. **Treatment failure** — A fraction `acq_fail` of DS-TB treatment failures acquire rifampicin resistance, entering CLN_RR (Symptomatic-R) instead of returning to CLN_DS.
-2. **Post-treatment relapse** — A fraction `acq_relapse` of DS-TB relapses acquire resistance, entering SUB_RR (Asymptomatic-R). Relapses without resistance return to SUB_DS.
+1. **Treatment failure** — A fraction `acq_fail` of DS-TB treatment failures acquire rifampicin resistance, entering CLN_RR (Symptomatic RR-TB) instead of returning to CLN_DS (Symptomatic DS-TB).
+2. **Post-treatment relapse** — A fraction `acq_relapse` of DS-TB relapses acquire resistance, entering SUB_RR (Asymptomatic RR-TB). Relapses without resistance return to SUB_DS (Asymptomatic DS-TB).
 
 These are the flows targeted by the INH-R intervention.
 
-**Treated → Susceptible.** After treatment completion, individuals return to the Susceptible pool at rate τ (range 0.5–1.5/yr). While in the Treated compartment they can also relapse (at rate `relapse_ds` or `relapse_rr`), returning to the Asymptomatic stage.
+**Treated → Susceptible.** After treatment completion, individuals return to the Susceptible pool at rate τ. While in the Treated compartment they can also relapse (at rate `relapse_ds` or `relapse_rr`), returning to the Asymptomatic stage.
 
 ### Time-Varying Parameters
 
@@ -59,7 +59,7 @@ Additionally, `delta_rr` (RR-TB treatment completion rate) transitions from 0.67
 
 ## Calibration
 
-The model is calibrated using History Matching with Emulation (HMER), an iterative Bayesian approach that identifies parameter sets consistent with observed data without requiring a likelihood function.
+The model is calibrated using History Matching with Emulation (HMER), an iterative approach that user emulators to efficiently identify parameter sets consistent with observed data, without requiring a likelihood function.
 
 ### Calibration Targets
 
