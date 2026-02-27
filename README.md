@@ -22,6 +22,8 @@ The model tracks two strains (DS and RR) across 13 compartments (1 shared Suscep
 
 Each compartment except SUS is duplicated for DS and RR strains (e.g. `SUB_DS`, `SUB_RR`).
 
+![Model structure](new_model_structure.png)
+
 ### Key Dynamics
 
 **Transmission.** Force of infection is strain-specific. RR-TB transmissibility is scaled by a fitness parameter (`fitness_rr`, range 0.3–1.0). Subclinical individuals transmit at a reduced rate (κ relative to symptomatic).
