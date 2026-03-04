@@ -16,10 +16,10 @@ set.seed(251195)
 
 interventions <- list(
   baseline       = list(name = "Baseline",              coverage = 0,                              efficacy = 0),
-  inhr_low       = list(name = "INH-R Dx Low (20%)",    coverage = c(lo=0.15, hi=0.25), efficacy = c(lo=0.70, hi=0.90)),
-  inhr_med       = list(name = "INH-R Dx Medium (50%)", coverage = c(lo=0.40, hi=0.60), efficacy = c(lo=0.70, hi=0.90)),
-  inhr_high      = list(name = "INH-R Dx High (80%)",   coverage = c(lo=0.70, hi=0.90), efficacy = c(lo=0.70, hi=0.90)),
-  inhr_universal = list(name = "Universal DST (100%)",   coverage = c(lo=0.95, hi=1.00), efficacy = c(lo=0.85, hi=0.95))
+  inhr_low       = list(name = "INH-R Dx Low (20%)",    coverage = c(lo=0.15, hi=0.25), efficacy = 0.975),
+  inhr_med       = list(name = "INH-R Dx Medium (50%)", coverage = c(lo=0.40, hi=0.60), efficacy = 0.975),
+  inhr_high      = list(name = "INH-R Dx High (80%)",   coverage = c(lo=0.70, hi=0.90), efficacy = 0.975),
+  inhr_universal = list(name = "Universal DST (100%)",   coverage = c(lo=0.95, hi=1.00), efficacy = 0.975)
 )
 
 # ODE with intervention (13 compartments, no CLE/REC)
@@ -29,7 +29,7 @@ ode_2strain_intervention <- function(parms, intervention = NULL, interv_start = 
     interv_eff <- 1
   } else {
     cov <- runif(1, intervention$coverage['lo'], intervention$coverage['hi'])
-    eff <- runif(1, intervention$efficacy['lo'], intervention$efficacy['hi'])
+    eff <- if (length(intervention$efficacy) == 1) intervention$efficacy else runif(1, intervention$efficacy['lo'], intervention$efficacy['hi'])
     interv_eff <- 1 - cov * eff * runif(1, PAF$lo, PAF$hi)
   }
   make_forcer <- function(p_ini, p_fin) {
