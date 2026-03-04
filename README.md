@@ -168,7 +168,7 @@ Interventions begin in 2025 and the model projects forward to 2035.
 
 ---
 
-### `02b_Fit_Waves.R` — Iterative Calibration (Parallelised)
+### `02b_Fit_Waves.R` — Iterative Calibration
 
 **Purpose:** Continue HMER waves from where `02_Fit.R` left off until 1,000 plausible parameter sets are found.
 
@@ -194,7 +194,7 @@ Interventions begin in 2025 and the model projects forward to 2035.
 
 ### `03_FitPlots.R` — Calibration Diagnostics
 
-**Purpose:** Validate the calibration by running all 1,000 plausible parameter sets through the model and comparing outputs to targets.
+**Purpose:** Validate the calibration by running all plausible parameter sets through the model and comparing outputs to targets.
 
 **What it does:**
 
@@ -202,17 +202,17 @@ Interventions begin in 2025 and the model projects forward to 2035.
 2. Runs each through the ODE model from 1900–2024.
 3. Computes quantile envelopes (2.5th, 25th, 50th, 75th, 97.5th percentiles) for each output variable across all runs.
 4. Generates a 4-panel calibration figure:
-   - **A. Total TB incidence** — model envelope vs WHO targets (error bars)
-   - **B. RR-TB incidence** — model envelope vs WHO targets
-   - **C. Proportion of RR-TB acquired** — model envelope vs 13–28% target
-   - **D. RR proportion of all TB** — model envelope vs ~4% reference line
+   - **A. Total TB incidence**
+   - **B. RR-TB incidence**
+   - **C. Proportion of RR-TB acquired**
+   - **D. RR proportion of all TB**
 5. Generates a histogram panel showing posterior distributions of key parameters (β, fitness_rr, acq_fail, acq_relapse, θ_ds_fin, θ_rr_fin).
 6. Prints a summary table of median (95% CI) for each output at 2024.
 
 **Outputs:**
-- `outputs/results.Rdata` — Quantile summary of calibration outputs (used as a cross-check)
-- `plots/01_calibration_fit.png` — Main calibration figure
-- `plots/03_parameters.png` — Parameter posterior distributions
+- `outputs/results.Rdata`
+- `plots/01_calibration_fit.png`
+- `plots/03_parameters.png`
 
 ---
 
@@ -222,9 +222,9 @@ Interventions begin in 2025 and the model projects forward to 2035.
 
 **What it does:**
 
-1. Loads the 1,000 plausible parameter sets.
+1. Loads the plausible parameter sets.
 2. Defines 5 scenarios (baseline + 4 intervention levels) with uncertainty ranges on coverage and efficacy.
-3. For each scenario × parameter set combination (5,000 total runs):
+3. For each scenario × parameter set combination:
    - Samples coverage, efficacy, and PAF from their uncertainty distributions.
    - Computes the intervention effect: `1 − coverage × efficacy × PAF`.
    - Runs the model from 1900–2035. Before 2025 the model is identical to baseline; from 2025 onward, `acq_fail` and `acq_relapse` are multiplied by the intervention effect.
@@ -233,10 +233,10 @@ Interventions begin in 2025 and the model projects forward to 2035.
 6. Prints an impact summary table.
 
 **Outputs:**
-- `outputs/results/scenarios_raw.Rdata` — All run-level results (large file)
-- `outputs/results/scenarios_summary.Rdata` — Quantile summaries by scenario/year/variable
-- `outputs/results/impact_raw.Rdata` — Run-level impact comparisons
-- `outputs/results/impact_summary.Rdata` — Median and 95% CI of impact metrics
+- `outputs/results/scenarios_raw.Rdata`
+- `outputs/results/scenarios_summary.Rdata`
+- `outputs/results/impact_raw.Rdata`
+- `outputs/results/impact_summary.Rdata`
 
 **Design note:** The intervention does not affect RR-TB transmission or treatment — it only reduces the *de novo* generation of new RR-TB through resistance acquisition. This is conservative, since improved INH-R management could also improve DS-TB treatment outcomes more broadly.
 
@@ -253,32 +253,30 @@ Interventions begin in 2025 and the model projects forward to 2035.
 3. Compares each intervention scenario to baseline: cumulative cases averted, cumulative deaths averted, percent reductions.
 4. Produces a summary table with median (95% CI) for all metrics.
 5. Scales results to Vietnam's national population (~100 million) to report absolute numbers of cases and deaths averted.
-6. Saves all intermediate and summary tables.
 
 **Outputs:**
-- `outputs/outs/cumulative.Rdata` — Per-run cumulative metrics
-- `outputs/outs/comparisons.Rdata` — Per-run comparisons to baseline
-- `outputs/outs/results_table.Rdata` — Summary table (the main results table for the manuscript)
-- `outputs/outs/baseline_summary.Rdata` — Baseline projections summary
+- `outputs/outs/cumulative.Rdata`
+- `outputs/outs/comparisons.Rdata`
+- `outputs/outs/results_table.Rdata`
+- `outputs/outs/baseline_summary.Rdata` 
 
 ---
 
-### `06_Plots.R` — Publication Figures
+### `06_Plots.R`
 
-**Purpose:** Generate publication-ready figures for the intervention analysis.
+**Purpose:** Generate figures for the intervention analysis.
 
 **What it does:**
 
 1. Loads scenario summaries and impact metrics.
 2. Produces a 4-panel combined figure:
-   - **A. RR-TB incidence over time (2020–2035)** — ribbon plots (median + 95% CI) for all 5 scenarios, with a vertical dashed line at intervention start (2025).
-   - **B. Proportion of RR-TB acquired over time** — same format, showing how the acquired fraction declines under intervention.
-   - **C. Impact bar chart** — percent reduction in RR-TB incidence by 2035 with uncertainty bars, by intervention coverage level.
-   - **D. Remaining RR-TB burden** — absolute RR-TB incidence in 2035 under each scenario vs baseline.
-3. Also saves individual panels as separate PNG files for flexibility.
+   - **A. RR-TB incidence over time (2020–2035)**
+   - **B. Proportion of RR-TB acquired over time** 
+   - **C. Impact bar chart** 
+   - **D. Remaining RR-TB burden** 
 
 **Outputs:**
-- `plots/combined_figure.png` — Main 4-panel results figure
-- `plots/panel_p1.png` through `plots/panel_p4.png` — Individual panels
+- `plots/combined_figure.png` 
+- `plots/panel_p1.png` through `plots/panel_p4.png`
 
 ---
