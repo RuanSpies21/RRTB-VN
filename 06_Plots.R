@@ -1,5 +1,5 @@
 ## RR-TB Vietnam Model - 06: Plots
-## Publication figures for intervention scenarios
+## Figures for intervnetion scenarios
 
 library(rio)
 library(here)
