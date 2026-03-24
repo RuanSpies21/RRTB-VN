@@ -143,7 +143,7 @@ Defines the two-strain ODE model and runs the first wave of history matching.
 
 Continues HMER waves until 1,000 plausible parameter sets are found.
 
-**Outputs:** `outputs/pts/fitpts.Rdata` (main calibration output)
+**Outputs:** `outputs/pts/fitpts.Rdata`
 
 ---
 
@@ -176,12 +176,3 @@ Computes cumulative impact metrics over 2025–2035 and scales to national popul
 Generates the main two-panel figure (RR-TB incidence trajectory + forest plot of reduction by coverage).
 
 **Outputs:** `plots/main_figure.pdf`
-
----
-
-## References
-
-- Schwalb A et al. Potential impact, costs, and benefits of population-wide screening interventions for tuberculosis in Viet Nam. *PLOS Global Public Health* 2025;5:e0005050.
-- Horton KC et al. Reevaluating progression and pathways following Mycobacterium tuberculosis infection within the spectrum of tuberculosis. *PNAS* 2023;120:e2221186120.
-- Iskauskas A et al. Emulation and History Matching Using the hmer Package. *Journal of Statistical Software* 2024;109:1–48.
-- Scarponi D et al. Demonstrating multi-country calibration of a tuberculosis model using new history matching and emulation package — hmer. *Epidemics* 2023;43:100678.
