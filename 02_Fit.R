@@ -68,7 +68,7 @@ ode_2strain <- function(parms, end_time = 2024) {
   N <- 1e5; mu <- 0.013; delta_ds <- 2
   
   make_forcer <- function(p_ini, p_fin) {
-    approxfun(c(1900, 1999, 2024), c(parms[p_ini], parms[p_ini], parms[p_fin]),
+    approxfun(c(1500, 1999, 2024), c(parms[p_ini], parms[p_ini], parms[p_fin]),
               method = "linear", rule = 2)
   }
   force_theta_ds <- make_forcer('theta_ds_ini', 'theta_ds_fin')
@@ -77,7 +77,7 @@ ode_2strain <- function(parms, end_time = 2024) {
   force_theta_rr <- make_forcer('theta_rr_ini', 'theta_rr_fin')
   force_phi_rr   <- make_forcer('phi_rr_ini',   'phi_rr_fin')
   force_mutb_rr  <- make_forcer('mutb_rr_ini',  'mutb_rr_fin')
-  force_delta_rr <- approxfun(c(1900, 2020, 2024), c(0.67, 0.67, 2.00),
+  force_delta_rr <- approxfun(c(1500, 2020, 2024), c(0.67, 0.67, 2.00),
                                method = "linear", rule = 2)
   
   des <- function(time, state, parms) {
@@ -97,8 +97,8 @@ ode_2strain <- function(parms, end_time = 2024) {
       mutb_rr_t  <- force_mutb_rr(time)
       delta_rr_t <- force_delta_rr(time)
       
-      # Susceptible: inflows from clearance (ωc), recovery (μr), treatment completion (τ)
-      dSUS <- (mu * N) + omega_c*(INF_DS + INF_RR) + mu_r*(MIN_DS + MIN_RR) +
+      # Susceptible: inflows from births, TB deaths, clearance, recovery, treatment completion
+      dSUS <- (mu * N) + mutb_ds_t*CLN_DS + mutb_rr_t*CLN_RR + omega_c*(INF_DS + INF_RR) + mu_r*(MIN_DS + MIN_RR) +
               tau*(TRE_DS + TRE_RR) - (lambda_total + mu) * SUS
       
       # DS strain
@@ -164,7 +164,7 @@ ode_2strain <- function(parms, end_time = 2024) {
     INF_RR = 0, MIN_RR = 0, SUB_RR = 100*rr0, CLN_RR = 400*rr0, TXT_RR = 0, TRE_RR = 0,
     SUB_RR_acq = 0)
   
-  deSolve::ode(yini, seq(1900, end_time, 1), des, parms, method = "lsoda")
+  deSolve::ode(yini, seq(1500, end_time, 1), des, parms, method = "lsoda")
 }
 
 # Test

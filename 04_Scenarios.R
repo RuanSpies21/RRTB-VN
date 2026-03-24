@@ -33,7 +33,7 @@ ode_2strain_intervention <- function(parms, intervention = NULL, interv_start = 
     interv_eff <- 1 - cov * eff * runif(1, PAF$lo, PAF$hi)
   }
   make_forcer <- function(p_ini, p_fin) {
-    approxfun(c(1900,1999,2024), c(parms[p_ini],parms[p_ini],parms[p_fin]), method="linear", rule=2)
+    approxfun(c(1500,1999,2024), c(parms[p_ini],parms[p_ini],parms[p_fin]), method="linear", rule=2)
   }
   force_theta_ds <- make_forcer('theta_ds_ini','theta_ds_fin')
   force_phi_ds   <- make_forcer('phi_ds_ini','phi_ds_fin')
@@ -41,7 +41,7 @@ ode_2strain_intervention <- function(parms, intervention = NULL, interv_start = 
   force_theta_rr <- make_forcer('theta_rr_ini','theta_rr_fin')
   force_phi_rr   <- make_forcer('phi_rr_ini','phi_rr_fin')
   force_mutb_rr  <- make_forcer('mutb_rr_ini','mutb_rr_fin')
-  force_delta_rr <- approxfun(c(1900,2020,2024), c(0.67,0.67,2.00), method="linear", rule=2)
+  force_delta_rr <- approxfun(c(1500,2020,2024), c(0.67,0.67,2.00), method="linear", rule=2)
   
   des <- function(time, state, parms) {
     with(as.list(c(state, parms)), {
@@ -53,7 +53,7 @@ ode_2strain_intervention <- function(parms, intervention = NULL, interv_start = 
       ie <- ifelse(time >= interv_start, interv_eff, 1)
       acq_fail_t <- acq_fail*ie; acq_relapse_t <- acq_relapse*ie
       
-      dSUS <- mu*N + omega_c*(INF_DS+INF_RR) + mu_r*(MIN_DS+MIN_RR) + tau*(TRE_DS+TRE_RR) - (lambda_total+mu)*SUS
+      dSUS <- mu*N + mutb_ds_t*CLN_DS + mutb_rr_t*CLN_RR + omega_c*(INF_DS+INF_RR) + mu_r*(MIN_DS+MIN_RR) + tau*(TRE_DS+TRE_RR) - (lambda_total+mu)*SUS
       dINF_DS <- lambda_ds*SUS - (omega_c+omega_m+omega_s+mu)*INF_DS
       dMIN_DS <- omega_m*INF_DS + sigma_m*SUB_DS - (mu_r+mu_s+mu)*MIN_DS
       dSUB_DS <- omega_s*INF_DS + mu_s*MIN_DS + gamma*CLN_DS + relapse_ds*(1-acq_relapse_t)*TRE_DS - (sigma_m+sigma_c+mu)*SUB_DS
@@ -84,7 +84,9 @@ ode_2strain_intervention <- function(parms, intervention = NULL, interv_start = 
   rr0 <- 0.025
   yini <- c(SUS=N-500, INF_DS=0,MIN_DS=0,SUB_DS=100*(1-rr0),CLN_DS=400*(1-rr0),TXT_DS=0,TRE_DS=0,
             INF_RR=0,MIN_RR=0,SUB_RR=100*rr0,CLN_RR=400*rr0,TXT_RR=0,TRE_RR=0,SUB_RR_acq=0)
-  deSolve::ode(yini, seq(1900, end_time, 1), des, parms, method="lsoda")
+  # Use annual steps for burn-in, 0.1-year steps from 2020 onward for smooth plotting
+  times <- c(seq(1500, 2019, 1), seq(2020, end_time, 0.1))
+  deSolve::ode(yini, times, des, parms, method="lsoda")
 }
 
 cat("\n=== Running Scenarios ===\n")
@@ -100,6 +102,8 @@ for (sname in names(interventions)) {
   all_results[[sname]] <- rbindlist(res)
 }
 results_all <- rbindlist(all_results)[time >= 2020]
+# Round time to avoid floating point issues with 0.1 steps
+results_all[, time := round(time, 1)]
 export(results_all, here("outputs", "results", "scenarios_raw.Rdata"))
 
 output_vars <- c("Inc","IncRR","IncRR_acq","IncRR_trans","pAc","pRR","Prev","PrevRR","Mor","MorRR")

@@ -51,7 +51,7 @@ ranges <- list(
 ode_2strain <- function(parms, end_time = 2024) {
   N <- 1e5; mu <- 0.013; delta_ds <- 2
   make_forcer <- function(p_ini, p_fin) {
-    approxfun(c(1900, 1999, 2024), c(parms[p_ini], parms[p_ini], parms[p_fin]), method = "linear", rule = 2)
+    approxfun(c(1500, 1999, 2024), c(parms[p_ini], parms[p_ini], parms[p_fin]), method = "linear", rule = 2)
   }
   force_theta_ds <- make_forcer('theta_ds_ini','theta_ds_fin')
   force_phi_ds   <- make_forcer('phi_ds_ini','phi_ds_fin')
@@ -59,7 +59,7 @@ ode_2strain <- function(parms, end_time = 2024) {
   force_theta_rr <- make_forcer('theta_rr_ini','theta_rr_fin')
   force_phi_rr   <- make_forcer('phi_rr_ini','phi_rr_fin')
   force_mutb_rr  <- make_forcer('mutb_rr_ini','mutb_rr_fin')
-  force_delta_rr <- approxfun(c(1900, 2020, 2024), c(0.67, 0.67, 2.00), method = "linear", rule = 2)
+  force_delta_rr <- approxfun(c(1500, 2020, 2024), c(0.67, 0.67, 2.00), method = "linear", rule = 2)
   
   des <- function(time, state, parms) {
     with(as.list(c(state, parms)), {
@@ -71,7 +71,7 @@ ode_2strain <- function(parms, end_time = 2024) {
       theta_rr_t <- force_theta_rr(time); phi_rr_t <- force_phi_rr(time); mutb_rr_t <- force_mutb_rr(time)
       delta_rr_t <- force_delta_rr(time)
       
-      dSUS <- mu*N + omega_c*(INF_DS+INF_RR) + mu_r*(MIN_DS+MIN_RR) + tau*(TRE_DS+TRE_RR) - (lambda_total+mu)*SUS
+      dSUS <- mu*N + mutb_ds_t*CLN_DS + mutb_rr_t*CLN_RR + omega_c*(INF_DS+INF_RR) + mu_r*(MIN_DS+MIN_RR) + tau*(TRE_DS+TRE_RR) - (lambda_total+mu)*SUS
       dINF_DS <- lambda_ds*SUS - (omega_c+omega_m+omega_s+mu)*INF_DS
       dMIN_DS <- omega_m*INF_DS + sigma_m*SUB_DS - (mu_r+mu_s+mu)*MIN_DS
       dSUB_DS <- omega_s*INF_DS + mu_s*MIN_DS + gamma*CLN_DS + relapse_ds*(1-acq_relapse)*TRE_DS - (sigma_m+sigma_c+mu)*SUB_DS
@@ -101,7 +101,7 @@ ode_2strain <- function(parms, end_time = 2024) {
   rr0 <- 0.025
   yini <- c(SUS=N-500, INF_DS=0, MIN_DS=0, SUB_DS=100*(1-rr0), CLN_DS=400*(1-rr0), TXT_DS=0, TRE_DS=0,
             INF_RR=0, MIN_RR=0, SUB_RR=100*rr0, CLN_RR=400*rr0, TXT_RR=0, TRE_RR=0, SUB_RR_acq=0)
-  deSolve::ode(yini, seq(1900, end_time, 1), des, parms, method = "lsoda")
+  deSolve::ode(yini, seq(1500, end_time, 1), des, parms, method = "lsoda")
 }
 
 hmer_res <- function(params, times, outputs) {
