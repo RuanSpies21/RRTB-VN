@@ -45,7 +45,7 @@ ranges <- list(
 )
 
 # =============================================================================
-# 2. ODE Model (13 compartments, no CLE/REC)
+# 2. ODE Model
 # =============================================================================
 
 ode_2strain <- function(parms, end_time = 2024) {
@@ -220,5 +220,4 @@ for (w in (last_wave + 1):(last_wave + 100)) {
 stopCluster(cl)
 all_plausible <- unique(all_plausible)
 export(all_plausible, here("outputs", "pts", "fitpts.Rdata"))
-cat("\nFinal plausible sets:", nrow(all_plausible), "\n=== 02b_Fit_Waves.R completed ===\n")
-beepr::beep(2)
+cat("\nFinal plausible sets:", nrow(all_plausible)
