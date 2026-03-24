@@ -11,7 +11,7 @@ library(progress)
 fitpts <- import(here("outputs", "pts", "fitpts.Rdata"))
 cat("Loaded", nrow(fitpts), "plausible parameter sets\n")
 
-PAF <- list(estimate = 0.951, lo = 0.856, hi = 0.981)
+PAF <- list(estimate = 0.9518, lo = 0.8693, hi = 0.9816)
 set.seed(251195)
 
 interventions <- list(
@@ -22,7 +22,7 @@ interventions <- list(
   inhr_universal = list(name = "Universal DST (100%)",   coverage = c(lo=0.95, hi=1.00), efficacy = 0.975)
 )
 
-# ODE with intervention (13 compartments, no CLE/REC)
+# ODE with intervention
 ode_2strain_intervention <- function(parms, intervention = NULL, interv_start = 2025, end_time = 2035) {
   N <- 1e5; mu <- 0.013; delta_ds <- 2
   if (is.null(intervention) || identical(intervention$coverage, 0)) {
@@ -137,4 +137,3 @@ for (i in 1:nrow(impact_summary)) {
               r$scenario_name, r$IncRR_reduction_median, r$IncRR_reduction_lo, r$IncRR_reduction_hi,
               r$IncRR_averted_median, r$IncRR_averted_lo, r$IncRR_averted_hi))
 }
-cat("=== 04_Scenarios.R completed ===\n")
