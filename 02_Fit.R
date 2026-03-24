@@ -23,10 +23,9 @@ cat("=== Calibration targets loaded ===\n")
 print(targetsdb[, c("var", "time", "lo", "hi")])
 
 # =============================================================================
-# 2. Parameters (aligned with model diagram)
+# 2. Parameters
 # =============================================================================
-# 13 compartments: SUS + 6 per strain (INF, MIN, SUB, CLN, TXT, TRE)
-# No CLE/REC compartments — ωc and μr flow directly back to SUS
+
 
 parms <- c(
   beta = 12, kappa = 0.75, fitness_rr = 0.65,
@@ -60,7 +59,7 @@ ranges <- list(
 cat("Parameters:", length(parms), "| To calibrate:", length(ranges), "\n")
 
 # =============================================================================
-# 3. Two-Strain ODE Model (13 compartments)
+# 3. Two-Strain ODE Model 
 # =============================================================================
 
 ode_2strain <- function(parms, end_time = 2024) {
@@ -294,6 +293,3 @@ if (nrow(wave_1) >= 20) {
 } else {
   cat("Insufficient runs for emulator training.\n")
 }
-
-cat("\n=== 02_Fit.R completed ===\n")
-beepr::beep(2)
