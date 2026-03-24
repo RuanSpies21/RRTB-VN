@@ -15,7 +15,7 @@ targets <- as.data.table(import(here("data", "fit", "targets.Rdata")))
 fitpts <- as.data.table(import(here("outputs", "pts", "fitpts.Rdata")))
 cat("Loaded", nrow(fitpts), "plausible parameter sets\n")
 
-# Model (13 compartments, no CLE/REC)
+# Model
 ode_2strain <- function(parms, end_time = 2024) {
   N <- 1e5; mu <- 0.013; delta_ds <- 2
   make_forcer <- function(p_ini, p_fin) {
@@ -123,4 +123,3 @@ print(ggplot(fl[variable %in% key], aes(value)) + geom_histogram(bins=15,fill=cl
 
 cat("\nCalibration (2024):\n")
 for (v in c("Inc","IncRR","pAc","pRR")) { r <- results[time==2024 & var==v]; cat(sprintf("  %s: %.2f (%.2f-%.2f)\n",v,r$`50%`,r$`2.5%`,r$`97.5%`)) }
-cat("=== 03_FitPlots.R completed ===\n")
