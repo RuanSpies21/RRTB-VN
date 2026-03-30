@@ -82,7 +82,7 @@ COVID years (2020–2022) are excluded from calibration.
 ### Calibration Process
 
 1. **Wave 1** (`02_Fit_DDE.R`): Generate 560 initial parameter sets via maximin Latin Hypercube Sampling across the 28-dimensional parameter space. Run each through the DDE model and evaluate against targets. Train Gaussian process emulators on the input-output relationship.
-2. **Iterative waves** (`02b_Fit_Waves_DDE.R`): Use emulators to identify non-implausible regions of parameter space. Generate new candidate points in these regions, run the full model, retrain emulators, and repeat. A stationarity analysis confirmed that median intervention impact estimates had stabilised.
+2. **Iterative waves** (`02b_Fit_Waves_DDE.R`): Use emulators to identify non-implausible regions of parameter space. Generate new candidate points in these regions, run the full model, retrain emulators, and repeat.
 
 ### Parameters Calibrated (28 total)
 
@@ -143,7 +143,7 @@ Defines the two-strain DDE model with fixed-delay treatment completion and runs 
 
 ### `02b_Fit_Waves_DDE.R` — Iterative Calibration
 
-Continues HMER waves until plausible parameter sets are found. Uses recent emulators (last 15 waves) for point generation to avoid computational bottleneck from stacking all waves.
+Continues HMER waves until plausible parameter sets are found. 
 
 **Outputs:** `outputs/pts/fitpts.Rdata` (main calibration output)
 
@@ -159,30 +159,14 @@ Runs all plausible parameter sets through the DDE model and generates calibratio
 
 ### `04_Scenarios_DDE.R` — Intervention Projections
 
-Projects model forward under baseline and four INH-R intervention scenarios. Model outputs at 0.1-year resolution from 2020–2035 for smooth plotting.
+Projects model forward under baseline and four INH-R intervention scenarios.
 
 **Outputs:** `outputs/results/scenarios_summary.Rdata`, `outputs/results/impact_summary.Rdata`
 
 ---
 
-### `04b_Sensitivity_DDE.R` — PAF Sensitivity Analysis
+### `sens_dde.R` — PAF Sensitivity Analysis
 
 Runs the universal coverage intervention across nine PAF scenarios (3 INH-R prevalence levels × 3 RR levels) using Levin's formula. Generates the sensitivity forest plot.
 
 **Outputs:** `outputs/results/sensitivity/sens_impact.Rdata`, `plots/sensitivity_forest.pdf`
-
----
-
-### `05_Results.R` — Results Processing
-
-Computes cumulative impact metrics over 2025–2035 and scales to national population.
-
-**Outputs:** `outputs/outs/results_table.Rdata`
-
----
-
-### `06_Plots.R` — Figures
-
-Generates the main two-panel figure (RR-TB incidence trajectory + forest plot of reduction by coverage).
-
-**Outputs:** `plots/main_figure.pdf`
