@@ -30,7 +30,9 @@ where subscript x ∈ {s, r} denotes the drug-susceptible and rifampicin-resista
 
 **Natural history.** After infection, individuals progress with three possible outcomes: clearance back to Susceptible (→ S at rate η), non-infectious disease (→ N at rate p_n), or asymptomatic disease (→ A at rate p_a). Non-infectious individuals can recover back to Susceptible (→ S at rate ν) or progress to asymptomatic disease (→ A at rate ξ). Bidirectional transitions occur between Non-infectious and Asymptomatic (rates ξ, ζ) and between Asymptomatic and Symptomatic (rates σ, γ). Symptomatic individuals can regress to asymptomatic (γ), die from TB (d), or be diagnosed and started on treatment (θ).
 
-**Treatment and resistance acquisition.** DS-TB treatment has two pathways to generate RR-TB:
+**Treatment (delay differential equations).** Treatment completion uses fixed-delay DDEs rather than exponential rates. Individuals who enter treatment at time t − Δ complete at time t, attenuated by background mortality during treatment (e^{−μΔ}). DS-TB treatment duration is fixed at Δ_s = 0.5 years (6 months). RR-TB treatment duration Δ_r transitions from 1.5 years (18-month regimen) to 0.5 years (6-month BPaL) over 2020–2024.
+
+**Resistance acquisition.** DS-TB treatment has two pathways to generate RR-TB:
 
 1. **Treatment failure** — A fraction α_f of DS-TB treatment failures acquire rifampicin resistance, entering C_r (Symptomatic RR-TB) instead of returning to C_s (Symptomatic DS-TB).
 2. **Post-treatment relapse** — A fraction α_r of DS-TB relapses acquire resistance, entering A_r (Asymptomatic RR-TB). Relapses without resistance return to A_s (Asymptomatic DS-TB).
@@ -51,7 +53,7 @@ Six parameters are modelled as linear forcing functions interpolating from an in
 | φ (phi) | Treatment failure rate | φ_s,0 → φ_s,1 | φ_r,0 → φ_r,1 |
 | d | TB-specific mortality | d_s,0 → d_s,1 | d_r,0 → d_r,1 |
 
-Additionally, δ_r (RR-TB treatment completion rate) transitions from 0.67/yr (18-month regimen) to 2.0/yr (6-month BPaL) linearly over 2020–2024.
+Additionally, Δ_r (RR-TB treatment duration) transitions from 1.5 years (18-month regimen) to 0.5 years (6-month BPaL) linearly over 2020–2024.
 
 ### Fixed Parameters
 
@@ -59,7 +61,7 @@ Additionally, δ_r (RR-TB treatment completion rate) transitions from 0.67/yr (1
 |---|---|---|
 | N | 100,000 | Per 100k scaling |
 | μ (background mortality) | 0.013/yr | 75-year life expectancy |
-| δ_s (DS treatment completion) | 2/yr | 6-month standard regimen |
+| Δ_s (DS treatment duration) | 0.5 years | 6-month standard regimen |
 
 ## Calibration
 
@@ -79,8 +81,8 @@ COVID years (2020–2022) are excluded from calibration.
 
 ### Calibration Process
 
-1. **Wave 1** (`02_Fit.R`): Generate 560 initial parameter sets via maximin Latin Hypercube Sampling across the 28-dimensional parameter space. Run each through the ODE model and evaluate against targets. Train Gaussian process emulators on the input-output relationship.
-2. **Iterative waves** (`02b_Fit_Waves.R`): Use emulators to identify non-implausible regions of parameter space. Generate new candidate points in these regions, run the full model, retrain emulators, and repeat. Waves continue until 1,000 unique parameter sets are found that simultaneously satisfy all calibration targets.
+1. **Wave 1** (`02_Fit_DDE.R`): Generate 560 initial parameter sets via maximin Latin Hypercube Sampling across the 28-dimensional parameter space. Run each through the DDE model and evaluate against targets. Train Gaussian process emulators on the input-output relationship.
+2. **Iterative waves** (`02b_Fit_Waves_DDE.R`): Use emulators to identify non-implausible regions of parameter space. Generate new candidate points in these regions, run the full model, retrain emulators, and repeat. A stationarity analysis confirmed that median intervention impact estimates had stabilised.
 
 ### Parameters Calibrated (28 total)
 
@@ -99,7 +101,7 @@ Interventions are modelled by reducing the resistance acquisition rates (α_f an
 
 - **Coverage**: proportion of DS-TB patients receiving INH-R testing
 - **Efficacy**: fixed at 97.5%, corresponding to the estimated efficacy of the WHO-recommended HR-TB regimen
-- **PAF**: population attributable fraction for acquired RR-TB due to INH-R (0.856–0.981, from our case-control analysis)
+- **PAF**: population attributable fraction for acquired RR-TB due to INH-R (0.869–0.981, from our case-control analysis)
 
 Coverage and PAF are sampled from uniform distributions per model run, propagating uncertainty.
 
@@ -115,7 +117,7 @@ Interventions begin in 2025 and the model projects forward to 2035.
 
 ## Sensitivity Analysis
 
-To approximate the potential impact across settings with different INH-R prevalence or acquired resistance dynamics, the PAF is recalculated using Levin's formula across nine scenarios defined by three levels of INH-R prevalence (5%, 10%, 20%) and three levels of relative risk (observed estimate, 2-fold lower, 5-fold lower). The universal coverage intervention is re-run under each scenario.
+To approximate the potential impact across settings with different INH-R prevalence or acquired resistance dynamics, the PAF is recalculated using Levin's formula across nine scenarios defined by three levels of INH-R prevalence (5%, 10%, 20%) and three levels of relative risk (observed RR = 105, 2-fold lower, 5-fold lower). The universal coverage intervention is re-run under each scenario.
 
 ---
 
@@ -131,35 +133,43 @@ Loads WHO incidence data for Viet Nam and constructs calibration targets.
 
 ---
 
-### `02_Fit.R` — Model Definition & Initial Calibration Wave
+### `02_Fit_DDE.R` — Model Definition & Initial Calibration Wave
 
-Defines the two-strain ODE model and runs the first wave of history matching.
+Defines the two-strain DDE model with fixed-delay treatment completion and runs the first wave of history matching.
 
 **Outputs:** `outputs/waves/w001_wave.Rdata`, `outputs/ems/w001_ems.Rdata`, `outputs/pts/w001_pts.Rdata`
 
 ---
 
-### `02b_Fit_Waves.R` — Iterative Calibration
+### `02b_Fit_Waves_DDE.R` — Iterative Calibration
 
-Continues HMER waves until 1,000 plausible parameter sets are found.
+Continues HMER waves until plausible parameter sets are found. Uses recent emulators (last 15 waves) for point generation to avoid computational bottleneck from stacking all waves.
 
-**Outputs:** `outputs/pts/fitpts.Rdata`
+**Outputs:** `outputs/pts/fitpts.Rdata` (main calibration output)
 
 ---
 
-### `03_FitPlots.R` — Calibration Diagnostics
+### `03_FitPlots_DDE.R` — Calibration Diagnostics
 
-Runs all plausible parameter sets through the model and generates calibration diagnostic plots.
+Runs all plausible parameter sets through the DDE model and generates calibration diagnostic plots.
 
 **Outputs:** `outputs/results.Rdata`, `plots/01_calibration_fit.pdf`, `plots/03_parameters.pdf`
 
 ---
 
-### `04_Scenarios.R` — Intervention Projections
+### `04_Scenarios_DDE.R` — Intervention Projections
 
 Projects model forward under baseline and four INH-R intervention scenarios. Model outputs at 0.1-year resolution from 2020–2035 for smooth plotting.
 
 **Outputs:** `outputs/results/scenarios_summary.Rdata`, `outputs/results/impact_summary.Rdata`
+
+---
+
+### `04b_Sensitivity_DDE.R` — PAF Sensitivity Analysis
+
+Runs the universal coverage intervention across nine PAF scenarios (3 INH-R prevalence levels × 3 RR levels) using Levin's formula. Generates the sensitivity forest plot.
+
+**Outputs:** `outputs/results/sensitivity/sens_impact.Rdata`, `plots/sensitivity_forest.pdf`
 
 ---
 
@@ -173,5 +183,6 @@ Computes cumulative impact metrics over 2025–2035 and scales to national popul
 
 ### `06_Plots.R` — Figures
 
+Generates the main two-panel figure (RR-TB incidence trajectory + forest plot of reduction by coverage).
 
-**Outputs:** `plots/`
+**Outputs:** `plots/main_figure.pdf`
