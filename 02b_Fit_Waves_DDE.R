@@ -1,5 +1,6 @@
 ## RR-TB Vietnam Model - 02b: Fit Waves
 ## Run HMER waves until 1000 unique plausible parameter sets
+## DDE model with renamed parameters
 
 library(parallel)
 library(doParallel)
@@ -30,89 +31,103 @@ targets <- setNames(
 )
 
 ranges <- list(
-  beta = c(6, 20), kappa = c(0.62, 1.00), fitness_rr = c(0.30, 1.00),
-  omega_c = c(0.93, 3.30), omega_m = c(0.04, 0.23), omega_s = c(0.01, 0.10),
-  mu_r = c(0.14, 0.23), mu_s = c(0.21, 0.28),
-  sigma_m = c(1.24, 2.03), sigma_c = c(0.56, 0.94), gamma = c(0.46, 0.72),
-  theta_ds_ini = c(0.00, 0.57), theta_ds_fin = c(0.57, 0.77),
-  phi_ds_ini = c(0.11, 1.00), phi_ds_fin = c(0.07, 0.11),
-  mutb_ds_ini = c(0.28, 0.38), mutb_ds_fin = c(0.00, 0.28),
-  theta_rr_ini = c(0.00, 0.30), theta_rr_fin = c(0.50, 0.70),
-  phi_rr_ini = c(0.29, 1.00), phi_rr_fin = c(0.07, 0.29),
-  mutb_rr_ini = c(0.35, 0.50), mutb_rr_fin = c(0.15, 0.30),
-  tau = c(0.50, 1.50), relapse_ds = c(0.01, 0.30), relapse_rr = c(0.01, 0.30),
-  acq_fail = c(0.01, 0.20), acq_relapse = c(0.01, 0.20)
+  beta = c(6, 20), kappa = c(0.62, 1.00), f = c(0.30, 1.00),
+  eta = c(0.93, 3.30), p_n = c(0.04, 0.23), p_a = c(0.01, 0.10),
+  nu = c(0.14, 0.23), xi = c(0.21, 0.28),
+  zeta = c(1.24, 2.03), sigma = c(0.56, 0.94), gamma = c(0.46, 0.72),
+  theta_s0 = c(0.00, 0.57), theta_s1 = c(0.57, 0.77),
+  phi_s0 = c(0.11, 1.00), phi_s1 = c(0.07, 0.11),
+  d_s0 = c(0.28, 0.38), d_s1 = c(0.00, 0.28),
+  theta_r0 = c(0.00, 0.30), theta_r1 = c(0.50, 0.70),
+  phi_r0 = c(0.29, 1.00), phi_r1 = c(0.07, 0.29),
+  d_r0 = c(0.35, 0.50), d_r1 = c(0.15, 0.30),
+  tau = c(0.50, 1.50), rho_s = c(0.01, 0.30), rho_r = c(0.01, 0.30),
+  alpha_f = c(0.01, 0.20), alpha_r = c(0.01, 0.20)
 )
 
 # =============================================================================
-# 2. ODE Model (13 compartments, no CLE/REC)
+# 2. DDE Model
 # =============================================================================
 
-ode_2strain <- function(parms, end_time = 2024) {
-  N <- 1e5; mu <- 0.013; delta_ds <- 2
-  make_forcer <- function(p_ini, p_fin) {
-    approxfun(c(1500, 1999, 2024), c(parms[p_ini], parms[p_ini], parms[p_fin]), method = "linear", rule = 2)
+Delta_s <- 0.5  # DS-TB treatment duration (years)
+
+dde_2strain <- function(parms, end_time = 2024) {
+  N <- 1e5; mu <- 0.013
+  make_forcer <- function(p0, p1) {
+    approxfun(c(1500, 1999, 2024), c(parms[p0], parms[p0], parms[p1]), method = "linear", rule = 2)
   }
-  force_theta_ds <- make_forcer('theta_ds_ini','theta_ds_fin')
-  force_phi_ds   <- make_forcer('phi_ds_ini','phi_ds_fin')
-  force_mutb_ds  <- make_forcer('mutb_ds_ini','mutb_ds_fin')
-  force_theta_rr <- make_forcer('theta_rr_ini','theta_rr_fin')
-  force_phi_rr   <- make_forcer('phi_rr_ini','phi_rr_fin')
-  force_mutb_rr  <- make_forcer('mutb_rr_ini','mutb_rr_fin')
-  force_delta_rr <- approxfun(c(1500, 2020, 2024), c(0.67, 0.67, 2.00), method = "linear", rule = 2)
-  
+  force_theta_s <- make_forcer('theta_s0', 'theta_s1')
+  force_phi_s   <- make_forcer('phi_s0',   'phi_s1')
+  force_d_s     <- make_forcer('d_s0',     'd_s1')
+  force_theta_r <- make_forcer('theta_r0', 'theta_r1')
+  force_phi_r   <- make_forcer('phi_r0',   'phi_r1')
+  force_d_r     <- make_forcer('d_r0',     'd_r1')
+  force_Delta_r <- approxfun(c(1500, 2020, 2024), c(1.5, 1.5, 0.5), method = "linear", rule = 2)
+
   des <- function(time, state, parms) {
     with(as.list(c(state, parms)), {
-      infectious_ds <- kappa*SUB_DS + CLN_DS
-      infectious_rr <- fitness_rr*(kappa*SUB_RR + CLN_RR)
-      lambda_ds <- beta/N*infectious_ds; lambda_rr <- beta/N*infectious_rr
-      lambda_total <- lambda_ds + lambda_rr
-      theta_ds_t <- force_theta_ds(time); phi_ds_t <- force_phi_ds(time); mutb_ds_t <- force_mutb_ds(time)
-      theta_rr_t <- force_theta_rr(time); phi_rr_t <- force_phi_rr(time); mutb_rr_t <- force_mutb_rr(time)
-      delta_rr_t <- force_delta_rr(time)
-      
-      dSUS <- mu*N + mutb_ds_t*CLN_DS + mutb_rr_t*CLN_RR + omega_c*(INF_DS+INF_RR) + mu_r*(MIN_DS+MIN_RR) + tau*(TRE_DS+TRE_RR) - (lambda_total+mu)*SUS
-      dINF_DS <- lambda_ds*SUS - (omega_c+omega_m+omega_s+mu)*INF_DS
-      dMIN_DS <- omega_m*INF_DS + sigma_m*SUB_DS - (mu_r+mu_s+mu)*MIN_DS
-      dSUB_DS <- omega_s*INF_DS + mu_s*MIN_DS + gamma*CLN_DS + relapse_ds*(1-acq_relapse)*TRE_DS - (sigma_m+sigma_c+mu)*SUB_DS
-      dCLN_DS <- sigma_c*SUB_DS - (gamma+theta_ds_t+mutb_ds_t+mu)*CLN_DS + phi_ds_t*(1-acq_fail)*TXT_DS
-      dTXT_DS <- theta_ds_t*CLN_DS - (phi_ds_t+delta_ds+mu)*TXT_DS
-      dTRE_DS <- delta_ds*TXT_DS - (relapse_ds+tau+mu)*TRE_DS
-      acq_f <- phi_ds_t*acq_fail*TXT_DS; acq_r <- relapse_ds*acq_relapse*TRE_DS
-      dINF_RR <- lambda_rr*SUS - (omega_c+omega_m+omega_s+mu)*INF_RR
-      dMIN_RR <- omega_m*INF_RR + sigma_m*SUB_RR - (mu_r+mu_s+mu)*MIN_RR
-      dSUB_RR <- omega_s*INF_RR + mu_s*MIN_RR + gamma*CLN_RR + relapse_rr*TRE_RR + acq_r - (sigma_m+sigma_c+mu)*SUB_RR
-      dCLN_RR <- sigma_c*SUB_RR - (gamma+theta_rr_t+mutb_rr_t+mu)*CLN_RR + phi_rr_t*TXT_RR + acq_f
-      dTXT_RR <- theta_rr_t*CLN_RR - (phi_rr_t+delta_rr_t+mu)*TXT_RR
-      dTRE_RR <- delta_rr_t*TXT_RR - (relapse_rr+tau+mu)*TRE_RR
-      dSUB_RR_acq <- acq_r - (sigma_m+sigma_c+mu)*SUB_RR_acq
-      
-      Pop <- SUS + INF_DS+MIN_DS+SUB_DS+CLN_DS+TXT_DS+TRE_DS + INF_RR+MIN_RR+SUB_RR+CLN_RR+TXT_RR+TRE_RR
-      Inc_DS <- sigma_c*SUB_DS; Inc_RR_acq <- acq_f+sigma_c*SUB_RR_acq; Inc_RR <- sigma_c*SUB_RR+acq_f
-      
-      return(list(c(dSUS, dINF_DS,dMIN_DS,dSUB_DS,dCLN_DS,dTXT_DS,dTRE_DS,
-                    dINF_RR,dMIN_RR,dSUB_RR,dCLN_RR,dTXT_RR,dTRE_RR,dSUB_RR_acq),
-        Inc = ((Inc_DS+Inc_RR)/Pop)*1e5, IncRR = (Inc_RR/Pop)*1e5,
-        pAc = Inc_RR_acq/(Inc_RR+1e-10), pRR = Inc_RR/(Inc_DS+Inc_RR+1e-10),
-        Prev = ((SUB_DS+CLN_DS+SUB_RR+CLN_RR)/Pop)*1e5,
-        Mor = ((mutb_ds_t*CLN_DS+mutb_rr_t*CLN_RR)/Pop)*1e5))
+      infectious_s <- kappa * A_s + C_s
+      infectious_r <- f * (kappa * A_r + C_r)
+      lam_s <- (beta / N) * infectious_s
+      lam_r <- (beta / N) * infectious_r
+      lam <- lam_s + lam_r
+      theta_s <- force_theta_s(time); phi_s <- force_phi_s(time); d_s <- force_d_s(time)
+      theta_r <- force_theta_r(time); phi_r <- force_phi_r(time); d_r <- force_d_r(time)
+      Delta_r <- force_Delta_r(time)
+
+      # DDE: delayed treatment completion
+      t0 <- 1500
+      if (time - Delta_s > t0) {
+        lag_s <- lagvalue(time - Delta_s); names(lag_s) <- names(state)
+        completion_s <- max(0, theta_s * lag_s["C_s"] * exp(-mu * Delta_s))
+      } else { completion_s <- (1 / Delta_s) * T_s }
+      if (time - Delta_r > t0) {
+        lag_r <- lagvalue(time - Delta_r); names(lag_r) <- names(state)
+        completion_r <- max(0, theta_r * lag_r["C_r"] * exp(-mu * Delta_r))
+      } else { completion_r <- (1 / Delta_r) * T_r }
+
+      dS <- mu * N + d_s * C_s + d_r * C_r + eta * (I_s + I_r) + nu * (N_s + N_r) + tau * (P_s + P_r) - (lam + mu) * S
+      dI_s <- lam_s * S - (eta + p_n + p_a + mu) * I_s
+      dN_s <- p_n * I_s + zeta * A_s - (nu + xi + mu) * N_s
+      dA_s <- p_a * I_s + xi * N_s + gamma * C_s + rho_s * (1 - alpha_r) * P_s - (zeta + sigma + mu) * A_s
+      dC_s <- sigma * A_s + phi_s * (1 - alpha_f) * T_s - (gamma + theta_s + d_s + mu) * C_s
+      dT_s <- theta_s * C_s - phi_s * T_s - completion_s - mu * T_s
+      dP_s <- completion_s - (rho_s + tau + mu) * P_s
+      Af <- phi_s * alpha_f * T_s; Ar <- rho_s * alpha_r * P_s
+      dI_r <- lam_r * S - (eta + p_n + p_a + mu) * I_r
+      dN_r <- p_n * I_r + zeta * A_r - (nu + xi + mu) * N_r
+      dA_r <- p_a * I_r + xi * N_r + gamma * C_r + rho_r * P_r + Ar - (zeta + sigma + mu) * A_r
+      dC_r <- sigma * A_r + phi_r * T_r + Af - (gamma + theta_r + d_r + mu) * C_r
+      dT_r <- theta_r * C_r - phi_r * T_r - completion_r - mu * T_r
+      dP_r <- completion_r - (rho_r + tau + mu) * P_r
+      dA_r_acq <- Ar - (zeta + sigma + mu) * A_r_acq
+
+      Pop <- S + I_s + N_s + A_s + C_s + T_s + P_s + I_r + N_r + A_r + C_r + T_r + P_r
+      Inc_DS <- sigma * A_s; Inc_RR_acq <- Af + sigma * A_r_acq; Inc_RR <- sigma * A_r + Af
+      return(list(c(dS, dI_s, dN_s, dA_s, dC_s, dT_s, dP_s,
+                    dI_r, dN_r, dA_r, dC_r, dT_r, dP_r, dA_r_acq),
+        Inc = ((Inc_DS + Inc_RR) / Pop) * 1e5, IncRR = (Inc_RR / Pop) * 1e5,
+        pAc = Inc_RR_acq / (Inc_RR + 1e-10), pRR = Inc_RR / (Inc_DS + Inc_RR + 1e-10)))
     })
   }
   rr0 <- 0.025
-  yini <- c(SUS=N-500, INF_DS=0, MIN_DS=0, SUB_DS=100*(1-rr0), CLN_DS=400*(1-rr0), TXT_DS=0, TRE_DS=0,
-            INF_RR=0, MIN_RR=0, SUB_RR=100*rr0, CLN_RR=400*rr0, TXT_RR=0, TRE_RR=0, SUB_RR_acq=0)
-  deSolve::ode(yini, seq(1500, end_time, 1), des, parms, method = "lsoda")
+  yini <- c(S = N - 500,
+    I_s = 0, N_s = 0, A_s = 100*(1-rr0), C_s = 400*(1-rr0), T_s = 0, P_s = 0,
+    I_r = 0, N_r = 0, A_r = 100*rr0, C_r = 400*rr0, T_r = 0, P_r = 0,
+    A_r_acq = 0)
+  deSolve::dede(yini, seq(1500, end_time, 1), des, parms, method = "lsoda")
 }
 
 hmer_res <- function(params, times, outputs) {
-  all_res <- ode_2strain(params, end_time = max(times))
+  all_res <- dde_2strain(params, end_time = max(times))
   actual_res <- all_res[all_res[, 'time'] %in% times, c('time', outputs)]
   shaped <- reshape2::melt(actual_res[, outputs])
   setNames(shaped$value, paste0(shaped$Var2, times))
 }
 
 run_model_parallel <- function(pts, calib_times, calib_outputs, targets) {
-  clusterExport(cl, c("ode_2strain", "hmer_res", "calib_times", "calib_outputs", "targets"), envir = environment())
+  clusterExport(cl, c("dde_2strain", "hmer_res", "calib_times", "calib_outputs", "targets", "Delta_s"),
+                envir = environment())
   clusterEvalQ(cl, { library(deSolve); library(reshape2) })
   do.call(rbind, parLapply(cl, 1:nrow(pts), function(i) {
     tryCatch({
@@ -143,9 +158,9 @@ pts_files  <- sort(list.files(here("outputs", "pts"),   "^w[0-9]+_pts\\.Rdata$",
 
 max_wave <- max(c(1, sapply(c(wave_files, ems_files, pts_files), get_wave_num)), na.rm = TRUE)
 wave <- vector("list", max_wave); ems <- vector("list", max_wave); non_imp_pts <- vector("list", max_wave)
-for (f in wave_files) wave[[get_wave_num(f)]] <- import(f)
-for (f in ems_files) ems[[get_wave_num(f)]] <- import(f)
-for (f in pts_files) non_imp_pts[[get_wave_num(f)]] <- import(f)
+for (f_ in wave_files) wave[[get_wave_num(f_)]] <- import(f_)
+for (f_ in ems_files) ems[[get_wave_num(f_)]] <- import(f_)
+for (f_ in pts_files) non_imp_pts[[get_wave_num(f_)]] <- import(f_)
 
 last_wave <- max(which(!vapply(non_imp_pts, is.null, logical(1))), 1)
 cat("Continuing from wave:", last_wave + 1, "\n")
@@ -155,8 +170,9 @@ all_plausible <- do.call(rbind, lapply(seq_along(wave), function(i) {
   wc <- target_subset(wave[[i]], sens = 0)
   if (nrow(wc) > 0) wc[, names(ranges)] else NULL
 }))
-all_plausible <- unique(all_plausible)
-cat("Existing plausible points:", nrow(all_plausible), "\n")
+if (!is.null(all_plausible)) all_plausible <- unique(all_plausible)
+n_existing <- if (is.null(all_plausible)) 0L else nrow(all_plausible)
+cat("Existing plausible points:", n_existing, "\n")
 
 n_samples <- 20 * length(ranges)
 target_plausible <- 1000
@@ -169,24 +185,27 @@ for (w in (last_wave + 1):(last_wave + 100)) {
   cat("\n=== Wave", w, "===\n"); tic()
   pts_to_run <- non_imp_pts[[w - 1]]
   if (is.null(pts_to_run)) stop("Missing points for wave ", w - 1)
-  
+
   wave_res_w <- run_model_parallel(pts_to_run, calib_times, calib_outputs, targets)
   wave[[w]] <- cbind(pts_to_run, wave_res_w)[complete.cases(cbind(pts_to_run, wave_res_w)), ]
   cat("Successful:", nrow(wave[[w]]), "/", nrow(pts_to_run), "\n")
   export(wave[[w]], here("outputs", "waves", sprintf("w%03d_wave.Rdata", w)))
-  
+
   wc <- target_subset(wave[[w]], sens = 0)
   cat("Hits all targets:", nrow(wc), "\n")
-  if (nrow(wc) > 0) all_plausible <- unique(rbind(all_plausible, wc[, names(ranges)]))
-  n_unique <- nrow(all_plausible)
+  if (nrow(wc) > 0) {
+    new_pts <- wc[, names(ranges)]
+    all_plausible <- if (is.null(all_plausible)) new_pts else unique(rbind(all_plausible, new_pts))
+  }
+  n_unique <- if (is.null(all_plausible)) 0L else nrow(all_plausible)
   cat("Cumulative plausible:", n_unique, "/", target_plausible, "\n")
-  
+
   if (n_unique >= target_plausible) {
     cat("\n*** SUCCESS:", n_unique, "plausible sets found ***\n")
     export(all_plausible, here("outputs", "pts", "fitpts.Rdata"))
     toc(); beepr::beep(2); break
   }
-  
+
   if (nrow(wave[[w]]) >= 20) {
     idx <- sample(nrow(wave[[w]]), nrow(wave[[w]]) %/% 2)
     wave_val <- wave[[w]][-idx, ]
@@ -210,7 +229,8 @@ for (w in (last_wave + 1):(last_wave + 100)) {
     non_imp_pts[[w]] <- non_imp_pts[[w-1]]
     for (col in names(ranges)) {
       rw <- diff(ranges[[col]])
-      non_imp_pts[[w]][[col]] <- pmax(ranges[[col]][1], pmin(ranges[[col]][2], non_imp_pts[[w]][[col]] + rnorm(nrow(non_imp_pts[[w]]), 0, 0.05*rw)))
+      non_imp_pts[[w]][[col]] <- pmax(ranges[[col]][1], pmin(ranges[[col]][2],
+        non_imp_pts[[w]][[col]] + rnorm(nrow(non_imp_pts[[w]]), 0, 0.05*rw)))
     }
     export(non_imp_pts[[w]], here("outputs", "pts", sprintf("w%03d_pts.Rdata", w)))
   }
