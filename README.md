@@ -82,7 +82,7 @@ COVID years (2020–2022) are excluded from calibration.
 ### Calibration Process
 
 1. **Wave 1** (`02_Fit_DDE.R`): Generate 560 initial parameter sets via maximin Latin Hypercube Sampling across the 28-dimensional parameter space. Run each through the DDE model and evaluate against targets. Train Gaussian process emulators on the input-output relationship.
-2. **Iterative waves** (`02b_Fit_Waves_DDE.R`): Use emulators to identify non-implausible regions of parameter space. Generate new candidate points in these regions, run the full model, retrain emulators, and repeat. A stationarity analysis confirmed that median intervention impact estimates had stabilised.
+2. **Iterative waves** (`02b_Fit_Waves_DDE.R`): Use emulators to identify non-implausible regions of parameter space. Generate new candidate points in these regions, run the full model, retrain emulators, and repeat.
 
 ### Parameters Calibrated (28 total)
 
