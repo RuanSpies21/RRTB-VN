@@ -105,4 +105,3 @@ for (i in 1:nrow(results_table)) {
     format(round(r$MorRR_averted_cum_hi * 1000), big.mark=",")))
 }
 
-cat("\n=== 05_Results.R completed ===\n")

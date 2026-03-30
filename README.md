@@ -171,8 +171,7 @@ Computes cumulative impact metrics over 2025–2035 and scales to national popul
 
 ---
 
-### `06_Plots.R` — Publication Figures
+### `06_Plots.R` — Figures
 
-Generates the main two-panel figure (RR-TB incidence trajectory + forest plot of reduction by coverage).
 
-**Outputs:** `plots/main_figure.pdf`
+**Outputs:** `plots/`
