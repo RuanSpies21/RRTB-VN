@@ -70,10 +70,10 @@ for (p in names(prevalence_scenarios)) {
 
 Delta_s <- 0.5
 
-dde_2strain_intervention <- function(parms, paf_range, coverage = c(lo = 0.95, hi = 1.00),
-                                      efficacy = 0.975, interv_start = 2025, end_time = 2035) {
+dde_2strain_intervention <- function(parms, paf_range, coverage = 1.00,
+                                      efficacy = 0.89, interv_start = 2025, end_time = 2035) {
   N <- 1e5; mu <- 0.013
-  cov <- runif(1, coverage['lo'], coverage['hi'])
+  cov <- coverage
   paf_draw <- runif(1, paf_range$lo, paf_range$hi)
   interv_eff <- 1 - cov * efficacy * paf_draw
 
@@ -153,7 +153,7 @@ baseline_res <- rbindlist(lapply(1:nrow(fitpts), function(i) {
   paf_zero <- list(lo = 0, hi = 0)
   out <- tryCatch({
     as.data.frame(dde_2strain_intervention(p, paf_range = paf_zero,
-                                            coverage = c(lo = 0, hi = 0), efficacy = 0))
+                                            coverage = 0, efficacy = 0))
   }, error = function(e) NULL)
   if (is.null(out)) { pb$tick(); return(NULL) }
   out$run <- i; pb$tick(); out
@@ -231,7 +231,7 @@ export(impact_sens, here("outputs", "results", "sensitivity", "sens_impact.Rdata
 
 cat("\n===========================================================================\n")
 cat("SENSITIVITY ANALYSIS: % Reduction in RR-TB Incidence by 2035\n")
-cat("Universal INH-R DST (95-100% coverage, 97.5% efficacy)\n")
+cat("Universal INH-R DST (100% coverage, 89% efficacy)\n")
 cat("===========================================================================\n\n")
 
 cat(sprintf("%-10s %-15s %8s %25s\n", "INH-R prev", "RR", "PAF", "RR-TB reduction (95% UI)"))
@@ -293,4 +293,3 @@ print(p)
 dev.off()
 
 cat("\nSaved: plots/sensitivity_forest.pdf\n")
-cat("=== 04b Sensitivity Analysis (DDE) completed ===\n")
