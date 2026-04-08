@@ -16,11 +16,11 @@ PAF <- list(estimate = 0.951, lo = 0.856, hi = 0.981)
 set.seed(251195)
 
 interventions <- list(
-  baseline       = list(name = "Baseline",              coverage = 0,                              efficacy = 0),
-  inhr_low       = list(name = "INH-R Dx Low (20%)",    coverage = c(lo=0.15, hi=0.25), efficacy = 0.975),
-  inhr_med       = list(name = "INH-R Dx Medium (50%)", coverage = c(lo=0.40, hi=0.60), efficacy = 0.975),
-  inhr_high      = list(name = "INH-R Dx High (80%)",   coverage = c(lo=0.70, hi=0.90), efficacy = 0.975),
-  inhr_universal = list(name = "Universal DST (100%)",   coverage = c(lo=0.95, hi=1.00), efficacy = 0.975)
+  baseline       = list(name = "Baseline",              coverage = 0,    efficacy = 0),
+  inhr_low       = list(name = "INH-R Dx Low (20%)",    coverage = 0.20, efficacy = 0.89),
+  inhr_med       = list(name = "INH-R Dx Medium (50%)", coverage = 0.50, efficacy = 0.89),
+  inhr_high      = list(name = "INH-R Dx High (80%)",   coverage = 0.80, efficacy = 0.89),
+  inhr_universal = list(name = "Universal DST (100%)",   coverage = 1.00, efficacy = 0.89)
 )
 
 Delta_s <- 0.5  # DS-TB treatment duration (years)
@@ -31,7 +31,7 @@ dde_2strain_intervention <- function(parms, intervention = NULL, interv_start = 
   if (is.null(intervention) || identical(intervention$coverage, 0)) {
     interv_eff <- 1
   } else {
-    cov <- runif(1, intervention$coverage['lo'], intervention$coverage['hi'])
+    cov <- intervention$coverage
     eff <- if (length(intervention$efficacy) == 1) intervention$efficacy else runif(1, intervention$efficacy['lo'], intervention$efficacy['hi'])
     interv_eff <- 1 - cov * eff * runif(1, PAF$lo, PAF$hi)
   }
