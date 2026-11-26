@@ -1,5 +1,5 @@
 ## RR-TB Vietnam Model - 02: Fit
-## Two-strain DDE model with renamed parameters (Marc feedback)
+## Two-strain DDE model with renamed parameters
 ## Treatment compartments use delay-differential equations
 
 library(rio)
@@ -24,7 +24,7 @@ cat("=== Calibration targets loaded ===\n")
 print(targetsdb[, c("var", "time", "lo", "hi")])
 
 # =============================================================================
-# 2. Parameters — renamed per Marc's feedback
+# 2. Parameters
 # =============================================================================
 # NAMING CONVENTION:
 #   Variables: single letter + strain subscript (s=susceptible, r=resistant)
@@ -37,7 +37,7 @@ print(targetsdb[, c("var", "time", "lo", "hi")])
 #     P_s/P_r = Post-treatment (treated)
 #     A_r_acq = Bookkeeping: acquired-resistance subset of A_r
 #
-#   Parameters: single Greek letter + subscript where needed
+#   Parameters:
 #     beta (β)        = transmission coefficient
 #     kappa (κ)       = relative infectiousness of asymptomatic TB
 #     f               = relative fitness of RR strain
